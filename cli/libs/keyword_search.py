@@ -1,5 +1,5 @@
 import json
-from text import clean_text, tokenize, remove_stopwords, reduce_stem
+from .search_utils import clean_text, tokenize, remove_stopwords, reduce_stem
 
 
 class Movie:

@@ -5,7 +5,7 @@ import sys
 import os
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from movies import load_movies, query_movies, print_movies
+from libs import load_movies, query_movies, print_movies
 
 FP_MOVIES = "./data/movies.json"
 
