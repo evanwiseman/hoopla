@@ -4,9 +4,7 @@ import argparse
 import sys
 import os
 
-# Ensure imports work when run as "uv run cli/keyword_search_cli.py ..."
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-
 from movies import load_movies, query_movies, print_movies
 
 FP_MOVIES = "./data/movies.json"

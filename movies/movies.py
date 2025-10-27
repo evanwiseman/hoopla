@@ -1,4 +1,5 @@
 import json
+from text import clean_text, tokenize, remove_stopwords, reduce_stem
 
 
 class Movie:
@@ -30,8 +31,24 @@ def load_movies(fp: str) -> list[Movie]:
 
 def query_movies(query: str, movies: list[Movie]) -> list[Movie]:
     result = []
+    clean_query = clean_text(query)
+
+    query_tokens = reduce_stem(remove_stopwords(tokenize(clean_query)))
     for movie in movies:
-        if query in movie.get_title():
+        # clean the text
+        clean_title = clean_text(movie.get_title())
+
+        # resolve into tokens
+        title_tokens = reduce_stem(remove_stopwords(tokenize(clean_title)))
+
+        num_matching = 0  # number of matching tokens
+        for query_token in query_tokens:
+            for movie_title_token in title_tokens:
+                if query_token in movie_title_token:
+                    num_matching += 1
+
+        # append to results if 1 or more is matching
+        if num_matching >= 1:
             result.append(movie)
     return result
 
