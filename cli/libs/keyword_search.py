@@ -1,7 +1,7 @@
 import json
 import pickle
 import os
-from collections import defaultdict
+from collections import defaultdict, Counter
 from .search_utils import clean_text, tokenize, remove_stopwords, reduce_stem
 
 
@@ -66,9 +66,11 @@ def print_movies(movies: list[Document], n: int) -> None:
 class InvertedIndex:
     index: dict[str, set[int]] = defaultdict(set[int])
     docmap: dict[int, Document] = {}
+    term_frequencies: dict[int, Counter] = defaultdict(Counter)
 
-    def __add_document(self, doc_id, text) -> None:
+    def __add_document(self, doc_id: int, text: str) -> None:
         tokens = reduce_stem(remove_stopwords(tokenize(clean_text(text))))
+        self.term_frequencies[doc_id] = Counter(tokens)
         for token in tokens:
             self.index[token].add(doc_id)
 
@@ -78,6 +80,9 @@ class InvertedIndex:
             return []
 
         return sorted(list(ids))
+
+    def get_tf(self, doc_id: int, term: str) -> int:
+        return self.term_frequencies.get(doc_id, {}).get(term, 0)
 
     def build(self, movies: list[Document]):
         for movie in movies:
@@ -91,12 +96,15 @@ class InvertedIndex:
         os.makedirs("cache", exist_ok=True)
         with open("cache/index.pkl", "wb") as f:
             pickle.dump(self.index, f)
-
         with open("cache/docmap.pkl", "wb") as f:
             pickle.dump(self.docmap, f)
+        with open("cache/term_frequencies", "wb") as f:
+            pickle.dump(self.term_frequencies, f)
 
     def load(self):
         with open("cache/index.pkl", "rb") as f:
             self.index = pickle.load(f)
         with open("cache/docmap.pkl", "rb") as f:
             self.docmap = pickle.load(f)
+        with open("cache/term_frequencies", "rb") as f:
+            self.term_frequencies = pickle.load(f)

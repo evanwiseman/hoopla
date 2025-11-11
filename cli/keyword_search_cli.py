@@ -13,6 +13,8 @@ FP_MOVIES = "./data/movies.json"
 class Args:
     command: str
     query: str
+    doc_id: int
+    term: str
 
 
 def main() -> None:
@@ -23,6 +25,10 @@ def main() -> None:
     search_parser.add_argument("query", type=str, help="Search query")
 
     build_parser = subparsers.add_parser("build", help="Builds an inverted index tree")  # noqa: F841
+
+    tf_parser = subparsers.add_parser("tf", help="Get the term frequency given an id")
+    tf_parser.add_argument("doc_id", type=int, help="Document ID")
+    tf_parser.add_argument("term", type=str, help="Search term")
 
     args = parser.parse_args(namespace=Args)
     tree = InvertedIndex()
@@ -44,12 +50,23 @@ def main() -> None:
             for i in range(min(5, len(ids))):
                 movie = tree.docmap[ids[i]]
                 print(ids[i], movie.get_title())
-
         case "build":
             print("Building inverted index tree")
             movie_ids = load_movies(FP_MOVIES)
             tree.build(movie_ids)
             tree.save()
+        case "tf":
+            try:
+                tree.load()
+            except FileNotFoundError:
+                print("missing inverted index tree: use build")
+                sys.exit(1)
+
+            frequency = tree.get_tf(
+                args.doc_id,
+                args.term,
+            )
+            print(f"{args.doc_id} {args.term} appears {frequency} times")
         case _:
             parser.print_help()
 
