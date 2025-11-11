@@ -5,7 +5,7 @@ import sys
 import os
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from libs import load_movies, query_movies, print_movies, InvertedIndex
+from libs import load_movies, InvertedIndex, tokenize, clean_text
 
 FP_MOVIES = "./data/movies.json"
 
@@ -25,23 +25,31 @@ def main() -> None:
     build_parser = subparsers.add_parser("build", help="Builds an inverted index tree")  # noqa: F841
 
     args = parser.parse_args(namespace=Args)
-
+    tree = InvertedIndex()
     match args.command:
         case "search":
             print(f"Searching for: {args.query}")
-            movies = load_movies(FP_MOVIES)
-            queried_movies = query_movies(args.query, movies)
-            print_movies(queried_movies, 5)
+            try:
+                tree.load()
+            except FileNotFoundError:
+                print("missing inverted index tree: use build")
+                sys.exit(1)
+
+            tokens = tokenize(clean_text(args.query))
+            ids = []
+            for token in tokens:
+                movie_ids = tree.get_document_ids(token)
+                ids.extend(movie_ids)
+            ids.sort()
+            for i in range(min(5, len(ids))):
+                movie = tree.docmap[ids[i]]
+                print(ids[i], movie.get_title())
+
         case "build":
             print("Building inverted index tree")
-            movies = load_movies(FP_MOVIES)
-            tree = InvertedIndex()
-            tree.build(movies)
+            movie_ids = load_movies(FP_MOVIES)
+            tree.build(movie_ids)
             tree.save()
-            print(
-                f"First document for token 'merida' = {tree.get_documents('merida')[0]}"
-            )
-
         case _:
             parser.print_help()
 

@@ -5,7 +5,7 @@ from collections import defaultdict
 from .search_utils import clean_text, tokenize, remove_stopwords, reduce_stem
 
 
-class Movie:
+class Document:
     def __init__(self, id: int, title: str, description: str) -> None:
         self._id = id
         self._title = title
@@ -21,18 +21,18 @@ class Movie:
         return self._description
 
 
-def load_movies(fp: str) -> list[Movie]:
+def load_movies(fp: str) -> list[Document]:
     try:
         with open(fp) as f:
             data = json.load(f)
-        return [Movie(**m) for m in data["movies"]]
+        return [Document(**d) for d in data["movies"]]
 
     except Exception as e:
         print(f"error loading movies: {e}")
         return []
 
 
-def query_movies(query: str, movies: list[Movie]) -> list[Movie]:
+def query_movies(query: str, movies: list[Document]) -> list[Document]:
     result = []
     clean_query = clean_text(query)
 
@@ -56,7 +56,7 @@ def query_movies(query: str, movies: list[Movie]) -> list[Movie]:
     return result
 
 
-def print_movies(movies: list[Movie], n: int) -> None:
+def print_movies(movies: list[Document], n: int) -> None:
     for i, movie in enumerate(movies):
         if i >= n:
             break
@@ -65,21 +65,21 @@ def print_movies(movies: list[Movie], n: int) -> None:
 
 class InvertedIndex:
     index: dict[str, set[int]] = defaultdict(set[int])
-    docmap: dict[int, Movie] = {}
+    docmap: dict[int, Document] = {}
 
     def __add_document(self, doc_id, text) -> None:
-        tokens = tokenize(clean_text(text))
+        tokens = reduce_stem(remove_stopwords(tokenize(clean_text(text))))
         for token in tokens:
             self.index[token].add(doc_id)
 
-    def get_documents(self, term: str) -> list[int]:
-        doc_ids = self.index.get(clean_text(term))
-        if not doc_ids:
+    def get_document_ids(self, term: str) -> list[int]:
+        ids = self.index.get(clean_text(term))
+        if not ids:
             return []
 
-        return sorted(list(doc_ids))
+        return sorted(list(ids))
 
-    def build(self, movies: list[Movie]):
+    def build(self, movies: list[Document]):
         for movie in movies:
             self.__add_document(
                 movie.get_id(),
@@ -94,3 +94,9 @@ class InvertedIndex:
 
         with open("cache/docmap.pkl", "wb") as f:
             pickle.dump(self.docmap, f)
+
+    def load(self):
+        with open("cache/index.pkl", "rb") as f:
+            self.index = pickle.load(f)
+        with open("cache/docmap.pkl", "rb") as f:
+            self.docmap = pickle.load(f)
