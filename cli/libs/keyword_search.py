@@ -1,4 +1,7 @@
 import json
+import pickle
+import os
+from collections import defaultdict
 from .search_utils import clean_text, tokenize, remove_stopwords, reduce_stem
 
 
@@ -58,3 +61,36 @@ def print_movies(movies: list[Movie], n: int) -> None:
         if i >= n:
             break
         print(f"{i + 1}. {movie.get_title()}")
+
+
+class InvertedIndex:
+    index: dict[str, set[int]] = defaultdict(set[int])
+    docmap: dict[int, Movie] = {}
+
+    def __add_document(self, doc_id, text) -> None:
+        tokens = tokenize(clean_text(text))
+        for token in tokens:
+            self.index[token].add(doc_id)
+
+    def get_documents(self, term: str) -> list[int]:
+        doc_ids = self.index.get(clean_text(term))
+        if not doc_ids:
+            return []
+
+        return sorted(list(doc_ids))
+
+    def build(self, movies: list[Movie]):
+        for movie in movies:
+            self.__add_document(
+                movie.get_id(),
+                f"{movie.get_title()} {movie.get_description()}",
+            )
+            self.docmap[movie.get_id()] = movie
+
+    def save(self):
+        os.makedirs("cache", exist_ok=True)
+        with open("cache/index.pkl", "wb") as f:
+            pickle.dump(self.index, f)
+
+        with open("cache/docmap.pkl", "wb") as f:
+            pickle.dump(self.docmap, f)

@@ -5,7 +5,7 @@ import sys
 import os
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from libs import load_movies, query_movies, print_movies
+from libs import load_movies, query_movies, print_movies, InvertedIndex
 
 FP_MOVIES = "./data/movies.json"
 
@@ -22,6 +22,8 @@ def main() -> None:
     search_parser = subparsers.add_parser("search", help="Search movies using BM25")
     search_parser.add_argument("query", type=str, help="Search query")
 
+    build_parser = subparsers.add_parser("build", help="Builds an inverted index tree")  # noqa: F841
+
     args = parser.parse_args(namespace=Args)
 
     match args.command:
@@ -30,6 +32,16 @@ def main() -> None:
             movies = load_movies(FP_MOVIES)
             queried_movies = query_movies(args.query, movies)
             print_movies(queried_movies, 5)
+        case "build":
+            print("Building inverted index tree")
+            movies = load_movies(FP_MOVIES)
+            tree = InvertedIndex()
+            tree.build(movies)
+            tree.save()
+            print(
+                f"First document for token 'merida' = {tree.get_documents('merida')[0]}"
+            )
+
         case _:
             parser.print_help()
 
